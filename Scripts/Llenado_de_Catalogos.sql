@@ -111,3 +111,32 @@ SET @x = '<Catalogos>
 			<TipoMovimientoPuntosMontana Id="2" Nombre="Debito por Ajuste" />
 		</TiposMovimientoPuntosMontana>
 </Catalogos>'
+
+
+
+-----------------------------------------Llenado de Pais
+INSERT INTO [dbo].[Pais](Id, Nombre)
+SELECT T.Item.value('@Id', 'INT'),
+		T.Item.value('@Nombre', 'VARCHAR(50)')
+FROM @x.nodes('Catalogos/Paises/Pais') as T(Item)
+
+SELECT * FROM Pais
+
+-----------------------------------------Llenado de Giros
+INSERT INTO [dbo].[Giro](Id, IdPais, Nombre)
+SELECT T.Item.value('@Id', 'INT'),
+		T.Item.value('@IdPais', 'INT'),
+		T.Item.value('@Nombre', 'VARCHAR(50)')
+FROM @x.nodes('Catalogos/Giros/Giro') as T(Item)
+
+SELECT * FROM Giro
+
+-----------------------------------------Llenado de Etapas
+INSERT INTO [dbo].[Etapa](Id, IdGiro, Nombre, Puntos)
+SELECT T.Item.value('@Id', 'INT'),
+		T.Item.value('@IdGiro', 'INT'),
+		T.Item.value('@Nombre', 'VARCHAR(50)'),
+		T.Item.value('@Puntos', 'INT')
+FROM @x.nodes('Catalogos/Paises/Pais') as T(Item)
+
+SELECT * FROM Etapa
