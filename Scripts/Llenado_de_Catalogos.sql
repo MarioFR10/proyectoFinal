@@ -3,7 +3,7 @@ SET @x = '<Catalogos>
 	<Paises>
 		<Pais Id="1" Nombre="Francia" />
 		<Pais Id="2" Nombre="Italia" />
-	</Paises>
+		</Paises>
 	<Giros>
 		<Giro Id="1" Nombre="Giro de Francia" IdPais="1" />
 		<Giro Id="2" Nombre="Giro de Italia" IdPais="2" />
