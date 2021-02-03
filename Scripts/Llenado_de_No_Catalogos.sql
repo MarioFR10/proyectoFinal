@@ -978,8 +978,11 @@ DECLARE @TempFinalCorredoresEnCarrera TABLE(Sec INT IDENTITY(1,1),
 											HoraLlegada TIME)
 
 DECLARE @TempOrdenLlegada TABLE(Sec INT IDENTITY(1,1),
-								IdCarrera INT,
-								IdCorredor INT)
+								IdEtapa INT,
+								IdIntanciaGiro INT,
+								IdCorredor INT,
+								HoraLlegada TIME,
+								Fecha DATE)
 
 DECLARE @TempGanadorPremioMontana TABLE(Sec INT IDENTITY(1,1),
 										CodigoCarrera VARCHAR(50),
@@ -1006,11 +1009,17 @@ DECLARE @anoActual INT,
 		@instanciaGiroActual INT,
 		@diferencia INT,
 		@fechaActual DATE,
+		@puntosEtapaActual INT,
 		@sancion INT,
+		@instanciaActual INT,
 		@minimo1 INT,
 		@maximo1 INT,
 		@minimo2 INT,
-		@maximo2 INT
+		@maximo2 INT,
+		@minimo3 INT,
+		@maximo3 INT,
+		@minimo4 DATE,
+		@maximo4 DATE
 
 INSERT INTO @TempFechas(ano)
 SELECT  T.Item.value('@Id', 'INT')
@@ -1053,7 +1062,6 @@ WHILE @minimo1 <= @maximo1
 		DELETE @TempCorredoresXEquipo
 		DELETE @TempCarrera
 		DELETE @TempFinalCorredoresEnCarrera
-		DELETE @TempOrdenLlegada
 		DELETE @TempGanadorPremioMontana
 		DELETE @TempSanciones
 
@@ -1213,6 +1221,67 @@ WHILE @minimo1 <= @maximo1
 				SET @minimo2 = @minimo2 + 1
 			END
 
+		SELECT @minimo4 = MIN(Fecha),
+				@maximo4 = MAX(Fecha)
+		FROM @TempCarrera
+
+		WHILE @minimo4 <= @maximo4
+			BEGIN
+				INSERT INTO @TempOrdenLlegada(IdEtapa,
+									IdIntanciaGiro,
+									IdCorredor,
+									HoraLlegada,
+									Fecha)
+				SELECT C.IdEtapa,
+						C.IdInstanciaGiro,
+						CEG.IdCorredor,
+						TFCC.HoraLlegada,
+						C.Fecha
+				FROM @TempFinalCorredoresEnCarrera TFCC
+				INNER JOIN Carrera C ON C.CodigoCarrera = TFCC.CodigoCarrera
+				INNER JOIN CorredoresXEquipoXGiro CEG ON CEG.NumeroCamisa = TFCC.NumeroCamisa
+				WHERE C.Fecha = @minimo4
+				ORDER BY Fecha, HoraLlegada ASC
+
+				SELECT * FROM @TempOrdenLlegada
+
+				SELECT @puntosEtapaActual = E.Puntos,
+						@minimo3 = 1,
+						@instanciaActual = TOL.IdIntanciaGiro,
+						@corredorActual = TOL.IdCorredor
+				FROM @TempOrdenLlegada TOL
+				INNER JOIN Etapa E ON E.Id = TOL.IdEtapa
+				WHERE TOL.Fecha = @minimo4
+
+				WHILE 0 <= @puntosEtapaActual
+					BEGIN
+						INSERT [dbo].[MovPuntosRegularidad] ([IdTipoMov],
+															[IdInstanciaGiroXEquipoXCorredores],
+															[cantidadPuntos],
+															[Fecha])
+						VALUES (1,
+								@instanciaActual,
+								@puntosEtapaActual,
+								@minimo4)
+
+						UPDATE [dbo].[CorredoresXEquipoXGiro]
+						SET [SumaPuntosReg] = [SumaPuntosReg] + @puntosEtapaActual
+						WHERE ([dbo].[CorredoresXEquipoXGiro].[IdCorredor] = @corredorActual)
+							AND ([dbo].[CorredoresXEquipoXGiro].[IdInstanciaGiro] = @instanciaActual)
+
+						UPDATE [dbo].[IGiroXEquipo]
+						SET [TotalPuntos] = [TotalPuntos] + @puntosEtapaActual
+						WHERE ([dbo].[IGiroXEquipo].[IdInstanciaGiro] = @instanciaActual)
+							AND ([dbo].[IGiroXEquipo].[IdEquipo] = @equipoActual)
+
+						SET @puntosEtapaActual = @puntosEtapaActual-1
+					END
+
+				DELETE @TempOrdenLlegada
+
+				SET @minimo4=DATEADD(d,1,@minimo4)
+			END
+
 		INSERT INTO [dbo].[GanadorPremioMontana]([IdCorredor],
 												 [IdCarrera],
 												 [IdPremio])
@@ -1342,3 +1411,5 @@ WHILE @minimo1 <= @maximo1
 --SELECT * FROM [dbo].[MovPuntosMontana]
 --SELECT * FROM GanadorPremioMontana
 --SELECT * FROM [dbo].[MovTiempo]
+--SELECT * FROM [dbo].[MovPuntosRegularidad]
+--SELECT * FROM [dbo].[InstanciaGiro]
