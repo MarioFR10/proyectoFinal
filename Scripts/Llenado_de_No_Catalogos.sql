@@ -1053,6 +1053,7 @@ WHILE @minimo1 <= @maximo1
 		DELETE @TempCorredoresXEquipo
 		DELETE @TempCarrera
 		DELETE @TempFinalCorredoresEnCarrera
+		DELETE @TempOrdenLlegada
 		DELETE @TempGanadorPremioMontana
 		DELETE @TempSanciones
 
@@ -1120,7 +1121,7 @@ WHILE @minimo1 <= @maximo1
 										[TotalPuntos])
 		SELECT IG.Id,
 				TGE.IdEquipo,
-				'0:00:00',
+				'00:00:00',
 				0
 		FROM @TempGiroXEquipo TGE
 		INNER JOIN InstanciaGiro IG ON IG.[CodigoInstancia] = TGE.CodigoIntancia
@@ -1138,7 +1139,7 @@ WHILE @minimo1 <= @maximo1
 				TCE.NumeroCamisa,
 				0,
 				0,
-				'0:00:00'
+				'00:00:00'
 		FROM @TempCorredoresXEquipo TCE
 		INNER JOIN InstanciaGiro IG ON IG.[CodigoInstancia] = TCE.CodigoIntancia
 		
@@ -1339,4 +1340,5 @@ WHILE @minimo1 <= @maximo1
 --SELECT * FROM GanadorPremioMontana
 --SELECT * FROM SancionXCarrera
 --SELECT * FROM [dbo].[MovPuntosMontana]
+--SELECT * FROM GanadorPremioMontana
 --SELECT * FROM [dbo].[MovTiempo]
