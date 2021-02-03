@@ -142,10 +142,11 @@ FROM @x.nodes('Catalogos/Etapas/Etapa') as T(Item)
 SELECT * FROM Etapa
 
 -----------------------------------------Llenado de PremioMontana
-INSERT INTO [dbo].[PremioMontana](idGiro, idEtapa, Nombre)
+INSERT INTO [dbo].[PremioMontana](idGiro, idEtapa, Nombre, Puntos)
 SELECT T.Item.value('@IdGiro', 'INT'),
 		T.Item.value('@IdEtapa', 'INT'),
-		T.Item.value('@Nombre', 'VARCHAR(50)')
+		T.Item.value('@Nombre', 'VARCHAR(50)'),
+		T.Item.value('@Puntos', 'INT')
 FROM @x.nodes('Catalogos/PremiosMontana/PremioMontana') as T(Item)
 
 SELECT * FROM PremioMontana
