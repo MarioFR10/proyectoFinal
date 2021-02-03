@@ -1187,7 +1187,7 @@ WHILE @minimo1 <= @maximo1
 				INNER JOIN [dbo].[Carrera] C ON C.CodigoCarrera = TFCC.CodigoCarrera
 				WHERE (TFCC.Sec = @minimo2)
 
-				SET @diferencia = DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual))
+				SET @diferencia = DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual)
 
 				INSERT [dbo].[MovTiempo]([IdTipoMov],
 										[IdInstanciaGiroXEquipoXCorredores],
@@ -1279,6 +1279,18 @@ WHILE @minimo1 <= @maximo1
 				TS.IdJuez,
 				TS.Descripcion,
 				('00:' + CONVERT(VARCHAR,TS.MinutosCastigo) + ':00')
+		FROM @TempSanciones TS
+		INNER JOIN Carrera C ON C.CodigoCarrera = TS.CodigoCarrera
+		INNER JOIN CorredoresXEquipoXGiro CEG ON CEG.NumeroCamisa = TS.NumeroCamisa
+
+		INSERT INTO [dbo].[MovTiempo]([IdTipoMov],
+										[IdInstanciaGiroXEquipoXCorredores],
+										[cantidadTiempo],
+										[Fecha])
+		SELECT 1,
+				CEG.Id,
+				('00:' + CONVERT(VARCHAR,TS.MinutosCastigo) + ':00'),
+				C.Fecha
 		FROM @TempSanciones TS
 		INNER JOIN Carrera C ON C.CodigoCarrera = TS.CodigoCarrera
 		INNER JOIN CorredoresXEquipoXGiro CEG ON CEG.NumeroCamisa = TS.NumeroCamisa
