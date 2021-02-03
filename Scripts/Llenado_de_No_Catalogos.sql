@@ -2882,8 +2882,14 @@ DECLARE @TempSanciones TABLE(Sec INT IDENTITY(1,1),
 --<SancionCarrera CodigoCarrera="CodigoFrancia2018-1" IdJuez="1" NumeroCamisa="2" MinutosCastigo="18" Descripcion="Mala conducta" />
 DECLARE @anoActual INT,
 		@CodigoInstanciaActual VARCHAR(50),
+		@finalCarreraActual TIME,
+		@inicioCarreraActual TIME,
+		@camisaCorredorActual INT,
+		@sancion INT,
 		@minimo1 INT,
-		@maximo1 INT
+		@maximo1 INT,
+		@minimo2 INT,
+		@maximo2 INT
 
 INSERT INTO @TempFechas(ano)
 SELECT  T.Item.value('@Id', 'INT')
@@ -2957,6 +2963,7 @@ WHILE @minimo1 <= @maximo1
 				T.Item.value('@HoraInicio', 'TIME')
 		FROM @x.nodes('Root/Year/InstanciaGiro[@CodigoInstancia=sql:variable("@CodigoInstanciaActual")]/Carrera') as T(Item)
 
+		--insertar en [dbo].[Llegada]
 		INSERT INTO @TempFinalCorredoresEnCarrera(CodigoCarrera,
 											NumeroCamisa,
 											HoraLlegada)
@@ -2973,6 +2980,7 @@ WHILE @minimo1 <= @maximo1
 				T.Item.value('@NombrePremio', 'VARCHAR(50)')
 		FROM @x.nodes('Root/Year/InstanciaGiro[@CodigoInstancia=sql:variable("@CodigoInstanciaActual")]/GanadorPremioMontanaEnCarrera') as T(Item)
 
+		--insert en [dbo].[SancionXCarrera]
 		INSERT INTO @TempSanciones (IdJuez,
 									CodigoCarrera,
 									NumeroCamisa,
@@ -3026,6 +3034,40 @@ WHILE @minimo1 <= @maximo1
 		FROM @TempCarrera TC
 		INNER JOIN InstanciaGiro IG ON IG.[CodigoInstancia] = TC.CodigoIntancia
 
+		INSERT INTO [dbo].[Llegada](IdCarrera,
+									IdCorredor,
+									HoraLlegada)
+		SELECT C.Id,
+				CEG.IdCorredor,
+				TFCC.HoraLlegada
+		FROM @TempFinalCorredoresEnCarrera TFCC
+		INNER JOIN Carrera C ON C.CodigoCarrera = TFCC.CodigoCarrera
+		INNER JOIN CorredoresXEquipoXGiro CEG ON CEG.NumeroCamisa = TFCC.NumeroCamisa
+
+		SELECT @minimo2 = MIN(Sec),
+				@maximo2 = MAX(Sec)
+		FROM @TempFinalCorredoresEnCarrera
+
+		WHILE @minimo2 <= @maximo2
+			BEGIN
+				SELECT @inicioCarreraActual = C.[HoraInicio]
+				FROM [dbo].[Carrera] C,
+					@TempFinalCorredoresEnCarrera TFCC
+				WHERE (TFCC.Sec = @minimo2)
+					AND (C.[CodigoCarrera] = TFCC.CodigoCarrera)
+
+				SELECT @finalCarreraActual = TFCC.HoraLlegada,
+						@camisaCorredorActual = TFCC.NumeroCamisa
+				FROM @TempFinalCorredoresEnCarrera TFCC
+				WHERE (TFCC.Sec = @minimo2)
+
+				--UPDATE [dbo].[CorredoresXEquipoXGiro]
+				--SET [SumaTiempo] = [SumaTiempo] + (CAST (DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual)/60.0) AS TIME
+				--WHERE [dbo].[CorredoresXEquipoXGiro].[NumeroCamisa] = @camisaCorredorActual
+
+				SET @minimo2 = @minimo2 + 1
+			END
+
 		INSERT INTO [dbo].[GanadorPremioMontana]([IdCorredor],
 												 [IdCarrera],
 												 [IdPremio])
@@ -3036,6 +3078,38 @@ WHILE @minimo1 <= @maximo1
 		INNER JOIN CorredoresXEquipoXGiro CEG ON CEG.NumeroCamisa = TGPM.NumeroCamisa
 		INNER JOIN Carrera C ON C.CodigoCarrera = TGPM.CodigoCarrera
 		INNER JOIN PremioMontana PM ON PM.Nombre = TGPM.NombrePremio
+
+		INSERT INTO [dbo].[SancionXCarrera]([IdCarrera],
+											[IdCorredor],
+											[IdJuez],
+											[Descripcion],
+											[MinutosCastigo])
+		SELECT C.Id,
+				CEG.IdCorredor,
+				TS.IdJuez,
+				TS.Descripcion,
+				TS.MinutosCastigo
+		FROM @TempSanciones TS
+		INNER JOIN Carrera C ON C.CodigoCarrera = TS.CodigoCarrera
+		INNER JOIN CorredoresXEquipoXGiro CEG ON CEG.NumeroCamisa = TS.NumeroCamisa
+
+		SELECT @minimo2 = MIN(Sec),
+				@maximo2 = MAX(Sec)
+		FROM @TempSanciones
+
+		WHILE @minimo2 <= @maximo2
+			BEGIN
+				SELECT @sancion = TS.MinutosCastigo,
+						@camisaCorredorActual = TS.NumeroCamisa
+				FROM @TempSanciones TS
+				WHERE (TS.Sec = @minimo2)
+
+				--UPDATE [dbo].[CorredoresXEquipoXGiro]
+				--SET [SumaTiempo] = DATEADD(MINUTE, @sancion, SumaTiempo)
+				--WHERE [dbo].[CorredoresXEquipoXGiro].[NumeroCamisa] = @camisaCorredorActual
+
+				SET @minimo2 = @minimo2 + 1
+			END
 
 		SET @minimo1 = @minimo1 + 1
 	END
@@ -3050,4 +3124,6 @@ WHILE @minimo1 <= @maximo1
 --SELECT * FROM IGiroXEquipo
 --SELECT * FROM CorredoresXEquipoXGiro
 --SELECT * FROM Carrera
+--SELECT * FROM Llegada
 --SELECT * FROM GanadorPremioMontana
+--SELECT * FROM SancionXCarrera
