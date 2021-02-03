@@ -1002,6 +1002,10 @@ DECLARE @anoActual INT,
 		@sancionActual TIME,
 		@puntosPremioActual INT,
 		@corredorActual INT,
+		@equipoActual INT,
+		@instanciaGiroActual INT,
+		@diferencia INT,
+		@fechaActual DATE,
 		@sancion INT,
 		@minimo1 INT,
 		@maximo1 INT,
@@ -1174,15 +1178,36 @@ WHILE @minimo1 <= @maximo1
 					AND (C.[CodigoCarrera] = TFCC.CodigoCarrera)
 
 				SELECT @finalCarreraActual = TFCC.HoraLlegada,
-						@camisaCorredorActual = TFCC.NumeroCamisa
+						@corredorActual = CEG.IdCorredor,
+						@equipoActual = CEG.IdEquipo,
+						@instanciaGiroActual = CEG.IdInstanciaGiro,
+						@fechaActual = C.Fecha
 				FROM @TempFinalCorredoresEnCarrera TFCC
+				INNER JOIN [dbo].[CorredoresXEquipoXGiro] CEG ON CEG.NumeroCamisa = TFCC.NumeroCamisa
+				INNER JOIN [dbo].[Carrera] C ON C.CodigoCarrera = TFCC.CodigoCarrera
 				WHERE (TFCC.Sec = @minimo2)
 
+				SET @diferencia = DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual))
+
+				INSERT [dbo].[MovTiempo]([IdTipoMov],
+										[IdInstanciaGiroXEquipoXCorredores],
+										[cantidadTiempo],
+										[Fecha])
+				VALUES (1,
+						@instanciaGiroActual,
+						('00:' + CONVERT(VARCHAR,@diferencia/60) + ':' + RIGHT('00' + CONVERT(VARCHAR,@diferencia % 60),2)),
+						@fechaActual)
 				--SELECT DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual)
 
 				UPDATE [dbo].[CorredoresXEquipoXGiro]
 				SET [SumaTiempo] = DATEADD(MINUTE, DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual), SumaTiempo)
-				WHERE [dbo].[CorredoresXEquipoXGiro].[NumeroCamisa] = @camisaCorredorActual
+				WHERE ([dbo].[CorredoresXEquipoXGiro].[IdCorredor] = @corredorActual)
+					AND ([dbo].[CorredoresXEquipoXGiro].[IdInstanciaGiro] = @instanciaGiroActual)
+
+				UPDATE [dbo].[IGiroXEquipo]
+				SET [TotalTiempo] = DATEADD(MINUTE, DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual), TotalTiempo)
+				WHERE ([dbo].[IGiroXEquipo].[IdInstanciaGiro] = @instanciaGiroActual)
+					AND ([dbo].[IGiroXEquipo].[IdEquipo] = @equipoActual)
 
 				SET @minimo2 = @minimo2 + 1
 			END
@@ -1217,7 +1242,9 @@ WHILE @minimo1 <= @maximo1
 		WHILE @minimo2 <= @maximo2
 			BEGIN
 				SELECT @puntosPremioActual = PM.Puntos,
-						@corredorActual = CEG.IdCorredor
+						@corredorActual = CEG.IdCorredor,
+						@equipoActual = CEG.IdEquipo,
+						@instanciaGiroActual = CEG.IdInstanciaGiro
 				FROM @TempGanadorPremioMontana TGPM
 				INNER JOIN [dbo].[PremioMontana] PM ON PM.Nombre = TGPM.NombrePremio
 				INNER JOIN [dbo].[CorredoresXEquipoXGiro] CEG ON CEG.NumeroCamisa = TGPM.NumeroCamisa
@@ -1225,7 +1252,13 @@ WHILE @minimo1 <= @maximo1
 
 				UPDATE [dbo].[CorredoresXEquipoXGiro]
 				SET [SumaPuntosMontana] = [SumaPuntosMontana] + @puntosPremioActual
-				WHERE [dbo].[CorredoresXEquipoXGiro].[IdCorredor] = @corredorActual
+				WHERE ([dbo].[CorredoresXEquipoXGiro].[IdCorredor] = @corredorActual)
+					AND ([dbo].[CorredoresXEquipoXGiro].[IdInstanciaGiro] = @instanciaGiroActual)
+
+				UPDATE [dbo].[IGiroXEquipo]
+				SET [TotalPuntos] = [TotalPuntos] + @puntosPremioActual
+				WHERE ([dbo].[IGiroXEquipo].[IdInstanciaGiro] = @instanciaGiroActual)
+					AND ([dbo].[IGiroXEquipo].[IdEquipo] = @equipoActual)
 
 				SET @minimo2 = @minimo2 + 1
 			END
@@ -1257,13 +1290,22 @@ WHILE @minimo1 <= @maximo1
 		WHILE @minimo2 <= @maximo2
 			BEGIN
 				SELECT @sancion = TS.MinutosCastigo,
-						@camisaCorredorActual = TS.NumeroCamisa
+						@corredorActual = CEG.IdCorredor,
+						@equipoActual = CEG.IdEquipo,
+						@instanciaGiroActual = CEG.IdInstanciaGiro
 				FROM @TempSanciones TS
+				INNER JOIN [dbo].[CorredoresXEquipoXGiro] CEG ON CEG.NumeroCamisa = TS.NumeroCamisa
 				WHERE (TS.Sec = @minimo2)
 
 				UPDATE [dbo].[CorredoresXEquipoXGiro]
 				SET [SumaTiempo] = DATEADD(MINUTE, @sancion, SumaTiempo)
-				WHERE [dbo].[CorredoresXEquipoXGiro].[NumeroCamisa] = @camisaCorredorActual
+				WHERE ([dbo].[CorredoresXEquipoXGiro].[IdCorredor] = @corredorActual)
+					AND ([dbo].[CorredoresXEquipoXGiro].[IdInstanciaGiro] = @instanciaGiroActual)
+
+				UPDATE [dbo].[IGiroXEquipo]
+				SET [TotalTiempo]  = DATEADD(MINUTE, @sancion, TotalTiempo)
+				WHERE ([dbo].[IGiroXEquipo].[IdInstanciaGiro] = @instanciaGiroActual)
+					AND ([dbo].[IGiroXEquipo].[IdEquipo] = @equipoActual)
 
 				SET @minimo2 = @minimo2 + 1
 			END
@@ -1284,3 +1326,5 @@ WHILE @minimo1 <= @maximo1
 --SELECT * FROM Llegada
 --SELECT * FROM GanadorPremioMontana
 --SELECT * FROM SancionXCarrera
+--SELECT * FROM [dbo].[MovPuntosMontana]
+--SELECT * FROM [dbo].[MovTiempo]
