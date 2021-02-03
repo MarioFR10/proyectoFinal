@@ -3133,7 +3133,7 @@ WHILE @minimo1 <= @maximo1
 				WHERE C.Fecha = @minimo4
 				ORDER BY Fecha, HoraLlegada ASC
 
-				SELECT * FROM @TempOrdenLlegada
+				--SELECT * FROM @TempOrdenLlegada
 
 				SELECT @puntosEtapaActual = E.Puntos,
 						@minimo3 = 1,
