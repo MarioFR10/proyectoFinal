@@ -977,6 +977,10 @@ DECLARE @TempFinalCorredoresEnCarrera TABLE(Sec INT IDENTITY(1,1),
 											NumeroCamisa INT,
 											HoraLlegada TIME)
 
+DECLARE @TempOrdenLlegada TABLE(Sec INT IDENTITY(1,1),
+								IdCarrera INT,
+								IdCorredor INT)
+
 DECLARE @TempGanadorPremioMontana TABLE(Sec INT IDENTITY(1,1),
 										CodigoCarrera VARCHAR(50),
 										NumeroCamisa INT,
@@ -1008,7 +1012,7 @@ INSERT INTO @TempFechas(ano)
 SELECT  T.Item.value('@Id', 'INT')
 FROM @x.nodes('Root/Year') as T(Item)
 
-SELECT * FROM @TempFechas
+--SELECT * FROM @TempFechas
 
 SELECT @minimo1 = MIN(ano),
 	   @maximo1 = MAX(ano)
@@ -1174,11 +1178,11 @@ WHILE @minimo1 <= @maximo1
 				FROM @TempFinalCorredoresEnCarrera TFCC
 				WHERE (TFCC.Sec = @minimo2)
 
-				SELECT DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual)
+				--SELECT DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual)
 
-				--UPDATE [dbo].[CorredoresXEquipoXGiro]
-				--SET [SumaTiempo] = [SumaTiempo] + (CAST (DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual) AS TIME))
-				--WHERE [dbo].[CorredoresXEquipoXGiro].[NumeroCamisa] = @camisaCorredorActual
+				UPDATE [dbo].[CorredoresXEquipoXGiro]
+				SET [SumaTiempo] = DATEADD(MINUTE, DATEDIFF(mi,@inicioCarreraActual,@finalCarreraActual), SumaTiempo)
+				WHERE [dbo].[CorredoresXEquipoXGiro].[NumeroCamisa] = @camisaCorredorActual
 
 				SET @minimo2 = @minimo2 + 1
 			END
@@ -1257,9 +1261,9 @@ WHILE @minimo1 <= @maximo1
 				FROM @TempSanciones TS
 				WHERE (TS.Sec = @minimo2)
 
-				--UPDATE [dbo].[CorredoresXEquipoXGiro]
-				--SET [SumaTiempo] = DATEADD(MINUTE, @sancion, SumaTiempo)
-				--WHERE [dbo].[CorredoresXEquipoXGiro].[NumeroCamisa] = @camisaCorredorActual
+				UPDATE [dbo].[CorredoresXEquipoXGiro]
+				SET [SumaTiempo] = DATEADD(MINUTE, @sancion, SumaTiempo)
+				WHERE [dbo].[CorredoresXEquipoXGiro].[NumeroCamisa] = @camisaCorredorActual
 
 				SET @minimo2 = @minimo2 + 1
 			END
