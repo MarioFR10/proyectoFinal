@@ -24,6 +24,10 @@ DELETE FROM [dbo].[Llegada]
 DBCC CHECKIDENT([Llegada], RESEED, 0)
 SELECT * FROM [dbo].[Llegada]
 
+DELETE FROM [dbo].[SancionXCarrera]
+DBCC CHECKIDENT([SancionXCarrera], RESEED, 0)
+SELECT * FROM [dbo].[SancionXCarrera]
+
 DELETE FROM [dbo].[Carrera]
 DBCC CHECKIDENT([Carrera], RESEED, 0)
 SELECT * FROM [dbo].[Carrera]
@@ -57,10 +61,6 @@ SELECT * FROM [dbo].[Juez]
 
 DELETE FROM [dbo].[Pais]
 SELECT * FROM [dbo].[Pais]
-
-DELETE FROM [dbo].[SancionXCarrera]
---DBCC CHECKIDENT([SancionXCarrera], RESEED, 0)
-SELECT * FROM [dbo].[SancionXCarrera]
 
 DELETE FROM [dbo].[sysdiagrams]
 DBCC CHECKIDENT([sysdiagrams], RESEED, 0)
